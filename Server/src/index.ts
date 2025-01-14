@@ -1,13 +1,13 @@
 import express, { Request, Response } from 'express';
 import dotenv from 'dotenv';
-import { connectToDatabase } from './db/dbConnection';
+// import { disconnectDatabase } from './db/dbConnection';
 
 dotenv.config();
 
 const app = express();
 const port = process.env.PORT || 3000;
 
-connectToDatabase();
+// disconnectDatabase();
 
 
 

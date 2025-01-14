@@ -1,30 +1,29 @@
+// src/database.ts
 import { Client } from 'pg';
-import * as dotenv from 'dotenv';
 
-dotenv.config();
+let client: Client | null = null;
 
-const client = new Client({
-    host: process.env.PG_HOST,
-    port: Number(process.env.PG_PORT),
-    user: process.env.PG_USER,
-    password: process.env.PG_PASSWORD,
-    database: process.env.PG_DATABASE,
-});
+export const connectToDatabase = async () => {
+    if (!client) {
+        client = new Client({
+            user: 'chaiaurcode', // your POSTGRES_USER
+            host: 'localhost',     // host where PostgreSQL is running
+            database: 'chaiDB',    // your POSTGRES_DB
+            password: 'chaiaurcode', // your POSTGRES_PASSWORD
+            port: 5432,            // default PostgreSQL port
+        });
 
-async function connectToDatabase() {
-    try {
         await client.connect();
-        console.log('Connected to PostgreSQL database!');
-        
-        // Example query
-        const res = await client.query('SELECT NOW()');
-        console.log(res.rows);
-
-    } catch (err) {
-        console.error('Error connecting to the database:', err);
-    } finally {
-        await client.end();
+        console.log('Connected to PostgreSQL database');
     }
-}
 
-export { connectToDatabase };
+    return client;
+};
+
+export const disconnectDatabase = async () => {
+    if (client) {
+        await client.end();
+        client = null;
+        console.log('Disconnected from PostgreSQL database');
+    }
+};
