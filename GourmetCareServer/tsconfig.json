@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "target": "ES2020", // Set the JavaScript version to compile to
+    "module": "ESNext", // Use ES modules
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "outDir": "./dist", // Output directory for compiled files
+    "rootDir": "./src"  // Root directory of TypeScript files
+  },
+  "include": ["src/**/*"], // Include all files in the src directory
+  "exclude": ["node_modules"] // Exclude node_modules folder
+}
