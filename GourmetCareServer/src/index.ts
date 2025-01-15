@@ -1,16 +1,21 @@
 import express, { Request, Response } from 'express';
-// import dotenv from 'dotenv';
+import dotenv from 'dotenv';
 
-
-// dotenv.config();
+// Load environment variables from .env file
+dotenv.config();
 
 const app = express();
-const port = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3000;
 
+// Middleware to parse JSON bodies
+app.use(express.json());
+
+// Define a simple route
 app.get('/', (req: Request, res: Response) => {
-    res.send('Hello World! This is a TypeScript server.');
+    res.send('Hello, World!');
 });
 
-app.listen(port, () => {
-    console.log(`Server running at http://localhost:${port}/`);
+// Start the server
+app.listen(PORT, () => {
+    console.log(`Server is running at http://localhost:${PORT}`);
 });
