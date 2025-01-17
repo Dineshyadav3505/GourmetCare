@@ -18,6 +18,21 @@ export class UserController {
   async register(req: Request, res: Response) {
     try {
       const { name, dateOfBirth, email, password, phoneNumber, profession } = req.body;
+
+      const fields = {
+        name,
+        dateOfBirth,
+        email,
+        password,
+        phoneNumber,
+        profession
+      };
+      
+      for (const [key, value] of Object.entries(fields)) {
+        if (!value) {
+          return res.status(400).json({ message: `${key.charAt(0).toUpperCase() + key.slice(1)} is required` });
+        }
+      }
       
       // Check if user already exists
       const userExists = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
@@ -38,6 +53,7 @@ export class UserController {
         phoneNumber,
         profession
       });
+      console.log("newUser", newUser);
 
       // Insert user into database
       const result = await pool.query(

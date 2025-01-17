@@ -19,8 +19,9 @@ app.use(express.static("public"))
 
 app.use(cookieParser());
 
-app.get('/', (req, res) => {
-    res.send('Hello, World!');
-});
+
+import userRoute from './routes/users/user.route';  
+
+app.use('/api/users', userRoute);
 
 export default app;
