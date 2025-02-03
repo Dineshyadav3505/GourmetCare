@@ -1,19 +1,15 @@
 import app from "./app";
 import pool from "./db/dataConnection";
 
+const startServer = async () => {
+  try {
+    await pool.connect();
+    app.listen(process.env.PORT, () => {
+      console.log(`Server running on port ${process.env.PORT}`);
+    });
+  } catch (error) {
+    console.error("Error starting server:", error);
+  }
+};
 
-pool
-  .connect()
-  .then((client) => {
-    console.log("Successfully connected to PostgreSQL database");
-    client.release();
-  })
-  .catch((error) => {
-    console.error("PostgreSQL Connection Error:", error);
-    process.exit(1);
-  });
-
-app.on('error', (error) => {
-    console.log("Error:", error);
-    throw error;
-});
+startServer();
