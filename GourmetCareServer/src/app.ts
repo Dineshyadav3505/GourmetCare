@@ -1,4 +1,5 @@
 import express from 'express';
+import dotenv from 'dotenv';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import bodyParser from 'body-parser';
@@ -6,7 +7,11 @@ import bodyParser from 'body-parser';
 
 const app = express();
 
-// app.use(cors());
+dotenv.config();
+
+// Middlewares
+app.use(cors());
+
 app.use(bodyParser.json());
 
 app.use(cors({ origin: process.env.CORS_ORIGIN, credentials: true,}));
@@ -20,8 +25,8 @@ app.use(express.static("public"))
 app.use(cookieParser());
 
 
-import userRoute from './routes/users/user.route';  
+// import userRoute from './routes/users/user.route';  
 
-app.use('/api/users', userRoute);
+// app.use('/api/users', userRoute);
 
 export default app;
