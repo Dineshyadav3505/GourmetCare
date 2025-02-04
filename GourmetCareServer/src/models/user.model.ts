@@ -1,4 +1,4 @@
-import { Pool, QueryResult } from 'pg';
+import { QueryResult } from 'pg';
 import pool from '../db/dataConnection';
 
 interface User {
@@ -6,8 +6,11 @@ interface User {
   firstName: string;
   lastName: string;
   email: string;
+  dateOfBirth?: Date;
   phoneNumber?: string;
   password: string;
+  role?: string;
+  refreshToken?: string;
   created_at?: Date;
   updated_at?: Date;
 }
@@ -16,12 +19,15 @@ interface User {
 export const createUsersTable = async (): Promise<void> => {
   const createTableQuery = `
     CREATE TABLE IF NOT EXISTS users (
-      id SERIAL PRIMARY KEY,
+      id SERIAL PRIMARY KEY ,
       first_name VARCHAR(100) NOT NULL,
       last_name VARCHAR(100) NOT NULL,
       email VARCHAR(255) UNIQUE NOT NULL,
+      date_of_birth DATE,
       phone_number VARCHAR(20),
       password VARCHAR(255) NOT NULL,
+      role VARCHAR(20) DEFAULT 'user',
+      refresh_token TEXT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
