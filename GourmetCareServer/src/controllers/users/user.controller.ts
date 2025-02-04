@@ -9,15 +9,23 @@ import {
   User
 } from '../../models/user.model';
 
+
 export const createUser = async (req: Request, res: Response) => {
-  try {
-    await createUsersTable();
-    const newUser: User = req.body;
-    const createdUser = await createUserModel(newUser);
-    res.status(201).json({ message: 'User created successfully', user: createdUser });
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
+  // try {
+  //   await createUsersTable();
+
+  //   const {firstName, lastName, email, phoneNumber, password} = req.body;
+
+  //   if (!firstName || !lastName || !email || !phoneNumber || !password) {
+  //     return res.status(400).json({ message: 'Please fill all fields' });
+  //   }
+
+  //   const newUser: User = { firstName, lastName, email, phoneNumber, password };
+  //   const createdUser = await createUserModel(newUser);
+  //   res.status(201).json({ message: 'User created successfully', user: createdUser });
+  // } catch (error: any) {
+  //   res.status(500).json({ error: error.message });
+  // }
 };
 
 export const getUserById = async (req: Request, res: Response) => {
