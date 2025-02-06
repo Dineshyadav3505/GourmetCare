@@ -1,7 +1,7 @@
 import { QueryResult } from 'pg';
 import pool from '../db/dataConnection';
 
-interface User {
+export interface User {
   id?: number;
   first_name: string;
   last_name: string;
@@ -10,7 +10,7 @@ interface User {
   phoneNumber?: string;
   password: string;
   role?: string;
-  refreshToken?: string;
+  refresh_token: string;
   created_at?: Date;
   updated_at?: Date;
 }
@@ -27,7 +27,7 @@ export const createUsersTable = async (): Promise<void> => {
       phone_number VARCHAR(20),
       password VARCHAR(255) NOT NULL,
       role VARCHAR(20) DEFAULT 'user',
-      refresh_token TEXT,
+      refresh_token TEXT NOT NULL,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
@@ -124,7 +124,7 @@ export const updateUser = async (id: number, user: Partial<User>): Promise<User 
   `;
 
   try {
-    const { rows }: QueryResult = await pool.query(updateUserQuery, [firstName, lastName, email, phoneNumber, password, id]);
+    const { rows }: QueryResult = await pool.query(updateUserQuery, [first_name, last_name, email, phoneNumber, password, id]);
     return rows[0] || null;
   } catch (error) {
     console.error('Error updating user:', error);
@@ -147,5 +147,3 @@ export const deleteUser = async (id: number): Promise<string> => {
     throw error;
   }
 };
-
-export { User };
