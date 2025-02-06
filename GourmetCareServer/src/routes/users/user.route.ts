@@ -4,7 +4,7 @@ import { Router } from 'express';
 
 const router = Router();
 
-router.post('/user', createUser);
+
 router.get('/user', getUserByEmail);
 router.get('/user/:id', getUserById);
 router.put('/user/:id', updateUser);

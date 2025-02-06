@@ -3,8 +3,8 @@ import pool from '../db/dataConnection';
 
 interface User {
   id?: number;
-  firstName: string;
-  lastName: string;
+  first_name: string;
+  last_name: string;
   email: string;
   dateOfBirth?: Date;
   phoneNumber?: string;
@@ -44,7 +44,7 @@ export const createUsersTable = async (): Promise<void> => {
 
 // Create a new user
 export const createUser = async (user: User): Promise<User> => {
-  const { firstName, lastName, email, phoneNumber, password } = user;
+  const { first_name, last_name, email, phoneNumber, password } = user;
   const createUserQuery = `
     INSERT INTO users (first_name, last_name, email, phone_number, password)
     VALUES ($1, $2, $3, $4, $5)
@@ -52,7 +52,7 @@ export const createUser = async (user: User): Promise<User> => {
   `;
 
   try {
-    const { rows }: QueryResult = await pool.query(createUserQuery, [firstName, lastName, email, phoneNumber, password]);
+    const { rows }: QueryResult = await pool.query(createUserQuery, [first_name, last_name, email, phoneNumber, password]);
     return rows[0];
   } catch (error) {
     console.error('Error creating user:', error);
@@ -109,7 +109,7 @@ export const getUserById = async (id: number): Promise<User | null> => {
 
 // Update a user
 export const updateUser = async (id: number, user: Partial<User>): Promise<User | null> => {
-  const { firstName, lastName, email, phoneNumber, password } = user;
+  const { first_name, last_name, email, phoneNumber, password } = user;
   const updateUserQuery = `
     UPDATE users
     SET 

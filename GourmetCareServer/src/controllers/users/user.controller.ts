@@ -11,21 +11,21 @@ import {
 
 
 export const createUser = async (req: Request, res: Response) => {
-  // try {
-  //   await createUsersTable();
+  try {
+    console.log("df")
+    await createUsersTable();
+    const {first_name, last_name, email, phoneNumber, password} = req.body;
 
-  //   const {firstName, lastName, email, phoneNumber, password} = req.body;
+    if (!first_name || !last_name || !email || !phoneNumber || !password) {
+      return res.status(400).json({ message: 'Please fill all fields' });
+    }
 
-  //   if (!firstName || !lastName || !email || !phoneNumber || !password) {
-  //     return res.status(400).json({ message: 'Please fill all fields' });
-  //   }
-
-  //   const newUser: User = { firstName, lastName, email, phoneNumber, password };
-  //   const createdUser = await createUserModel(newUser);
-  //   res.status(201).json({ message: 'User created successfully', user: createdUser });
-  // } catch (error: any) {
-  //   res.status(500).json({ error: error.message });
-  // }
+    const newUser: User = { first_name, last_name, email, phoneNumber, password };
+    const createdUser = await createUserModel(newUser);
+    res.status(201).json({ message: 'User created successfully', user: createdUser });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
 };
 
 export const getUserById = async (req: Request, res: Response) => {
