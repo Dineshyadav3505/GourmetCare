@@ -12,17 +12,17 @@ dotenv.config();
 // Middlewares
 app.use(cors());
 
-// app.use(bodyParser.json());
+app.use(bodyParser.json());
 
-// app.use(cors({ origin: process.env.CORS_ORIGIN, credentials: true,}));
+app.use(cors({ origin: process.env.CORS_ORIGIN, credentials: true,}));
 
-// app.use(express.json({ limit: process.env.Data_Limit }));
+app.use(express.json({ limit: process.env.Data_Limit }));
 
-// app.use(express.urlencoded({extended: true, limit: process.env.Data_Limit}));
+app.use(express.urlencoded({extended: true, limit: process.env.Data_Limit}));
 
-// app.use(express.static("public"))
+app.use(express.static("public"))
 
-// app.use(cookieParser());
+app.use(cookieParser());
 
 
 import userRoute from './routes/users/user.route';  
