@@ -11,6 +11,9 @@ import {
   deleteUser as deleteUserModel,
   User
 } from '../../models/user.model';
+import { ApiError } from '../../utils/apiError';
+import { ApiResponse } from '../../utils/apiResponse';
+import { asyncHandler } from '../../utils/asyncHandler';
 
 // Validation schemas
 const userSchema = Joi.object({
@@ -45,14 +48,13 @@ const handleError = (res: Response, error: unknown) => {
 };
 
 // Controller functions
-export const createUser = async (req: Request, res: Response): Promise<void> => {
+export const createUser = asyncHandler(async (req: Request, res: Response): Promise<void> => {
   try {
     await createUsersTable();
 
     const { error, value } = userSchema.validate(req.body, { abortEarly: false });
     if (error) {
-      res.status(400).json({ errors: error.details.map(detail => detail.message) });
-      return;
+      throw new ApiError(400, 'Validation error', false, error.details.map(detail => detail.message));
     }
 
     const { first_name, last_name, email, phoneNumber, password } = value;
@@ -72,11 +74,12 @@ export const createUser = async (req: Request, res: Response): Promise<void> => 
     const createdUser = await createUserModel(newUser);
 
     const { password: _, ...userWithoutPassword } = createdUser;
-    res.status(201).json({ message: 'User created successfully', user: userWithoutPassword, accessToken });
+    const user = { ...userWithoutPassword, accessToken };
+    throw new ApiResponse(201, 'User created successfully', user);
   } catch (error) {
     handleError(res, error);
   }
-};
+});
 
 export const getUserById = async (req: Request, res: Response): Promise<void> => {
   try {
