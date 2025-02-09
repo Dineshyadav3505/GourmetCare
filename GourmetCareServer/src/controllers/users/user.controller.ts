@@ -1,7 +1,4 @@
-import { Request, Response } from 'express';
-import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken';
-import Joi from 'joi';
+import { Request, Response } from "express";
 import {
   createUsersTable,
   createUser as createUserModel,
@@ -9,175 +6,215 @@ import {
   getUserByEmail as getUserByEmailModel,
   updateUser as updateUserModel,
   deleteUser as deleteUserModel,
-  User
-} from '../../models/user.model';
-import { ApiError } from '../../utils/apiError';
-import { ApiResponse } from '../../utils/apiResponse';
-import { asyncHandler } from '../../utils/asyncHandler';
+  User,
+} from "../../models/user.model";
+import { ApiError } from "../../utils/apiError";
+import { ApiResponse } from "../../utils/apiResponse";
+import { asyncHandler } from "../../utils/asyncHandler";
+import { userSchema, loginSchema } from "../../utils/schemaValidation";
+import { getAccessToken } from "../../utils/jwtToken";
+import {
+  generateVerificationCode,
+  verifyCode,
+} from "../../utils/optValidation";
+import { storeVerificationEmailCode } from "../../utils/optValidation";
+import { storeVerificationPhoneCode } from "../../utils/optValidation";
+import { options } from "../../utils/schemaValidation";
+import cookieParser from "cookie-parser";
 
-// Validation schemas
-const userSchema = Joi.object({
-  first_name: Joi.string().required().min(2).max(50),
-  last_name: Joi.string().required().min(2).max(50),
-  email: Joi.string().email().required(),
-  phoneNumber: Joi.string().pattern(/^[0-9]{10}$/).required(),
-  password: Joi.string().min(8).required()
-});
+// Verify the user's email or phone number
+export const sendVerificationCode = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    const { email, phoneNumber } = req.body;
 
-const loginSchema = Joi.object({
-  email: Joi.string().email().required(),
-  password: Joi.string().required()
-});
+    if (!email && !phoneNumber) {
+      throw new ApiError(400, "Either email or phone number is required");
+    }
 
-// Helper functions
-const getAccessToken = (user: Partial<User>): string => {
-  const secret = process.env.ACCESS_TOKEN_SECRET;
-  if (!secret) throw new Error('ACCESS_TOKEN_SECRET is not defined');
-  return jwt.sign({ email: user.email }, secret, { expiresIn: '7d' });
-};
+    let verificationCode;
 
-const verifyToken = (token: string): jwt.JwtPayload => {
-  const secret = process.env.ACCESS_TOKEN_SECRET;
-  if (!secret) throw new Error('ACCESS_TOKEN_SECRET is not defined');
-  return jwt.verify(token, secret) as jwt.JwtPayload;
-};
+    if (email) {
+      verificationCode = generateVerificationCode();
+      storeVerificationEmailCode(email, verificationCode);
+    }
+    if (phoneNumber) {
+      console.log("phone");
+      verificationCode = generateVerificationCode();
+      storeVerificationPhoneCode(phoneNumber, verificationCode);
+    }
 
-const handleError = (res: Response, error: unknown) => {
-  console.error('Error:', error);
-  res.status(500).json({ message: 'Internal server error' });
-};
+    res.status(201).json(
+      new ApiResponse(201, "OTP sent successfully", {
+        email: email,
+        code: verificationCode,
+      })
+    );
+  }
+);
 
-// Controller functions
-export const createUser = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-  try {
+// Create a new user
+export const createUser = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
     await createUsersTable();
 
-    const { error, value } = userSchema.validate(req.body, { abortEarly: false });
-    if (error) {
-      throw new ApiError(400, 'Validation error', false, error.details.map(detail => detail.message));
-    }
+    const { first_name, last_name, email, phoneNumber, code } = req.body;
 
-    const { first_name, last_name, email, phoneNumber, password } = value;
+    // Validate user input against schema
+    const { error } = userSchema.validate({
+      first_name,
+      last_name,
+      email,
+      phoneNumber,
+      code,
+    });
+    if (error) {
+      throw new ApiError(400, error.details[0].message, false, [
+        error.details[0].message,
+      ]);
+    }
 
     const existingUser = await getUserByEmailModel(email);
+
     if (existingUser) {
-      res.status(409).json({ message: 'User with this email already exists' });
+      res.status(409).json({ message: "User with this email already exists" });
       return;
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const accessToken = getAccessToken({ email });
-    const refresh_token = jwt.sign({ email }, process.env.REFRESH_TOKEN_SECRET as string);
-    console.log(accessToken);
-    console.log(refresh_token);
-    const newUser: User = { first_name, last_name, email, phoneNumber, password: hashedPassword, refresh_token };
-    const createdUser = await createUserModel(newUser);
-
-    const { password: _, ...userWithoutPassword } = createdUser;
-    const user = { ...userWithoutPassword, accessToken };
-    throw new ApiResponse(201, 'User created successfully', user);
-  } catch (error) {
-    handleError(res, error);
-  }
-});
-
-export const getUserById = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const userId = parseInt(req.params.id);
-    const user = await getUserByIdModel(userId);
-    if (user) {
-      res.status(200).json({ user });
-    } else {
-      res.status(404).json({ message: 'User not found' });
+    // Validate verification code
+    if (!code) {
+      throw new ApiError(400, "Verification code is required");
     }
-  } catch (error) {
-    handleError(res, error);
-  }
-};
 
-export const getUserByEmail = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const userEmail = req.params.email;
-    const user = await getUserByEmailModel(userEmail);
-    if (user) {
-      res.status(200).json({ user });
-    } else {
-      res.status(404).json({ message: 'User not found' });
-    }
-  } catch (error) {
-    handleError(res, error);
-  }
-};
+    const isCodeValid = verifyCode(email, code);
 
-export const updateUser = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const userId = parseInt(req.params.id);
-    const updatedUserData: Partial<User> = req.body;
-    const updatedUser = await updateUserModel(userId, updatedUserData);
-    if (updatedUser) {
-      res.status(200).json({ message: 'User updated successfully', user: updatedUser });
-    } else {
-      res.status(404).json({ message: 'User not found' });
-    }
-  } catch (error) {
-    handleError(res, error);
-  }
-};
-
-export const deleteUser = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const userId = parseInt(req.params.id);
-    const result = await deleteUserModel(userId);
-    res.status(200).json({ message: result });
-  } catch (error) {
-    handleError(res, error);
-  }
-};
-
-export const refreshToken = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const refreshToken = req.body.token;
-    if (!refreshToken) {
-      res.status(401).json({ message: 'User not authenticated' });
+    if (!isCodeValid) {
+      res.status(400).json({ message: "Invalid verification code" });
       return;
     }
 
-    const payload = verifyToken(refreshToken);
-    const accessToken = getAccessToken({ email: payload.email });
-    res.status(200).json({ accessToken });
-  } catch (error) {
-    res.status(403).json({ message: 'Invalid token' });
+    const accessToken = getAccessToken(email);
+
+    const newUser = { first_name, last_name, email, phoneNumber };
+    const user = await createUserModel(newUser);
+
+    res
+      .status(201)
+      .cookie("accessToken", accessToken, options)
+      .json(
+        new ApiResponse(201, "User created successfully", { user, accessToken })
+      );
   }
+);
+
+export const getUserById = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  // try {
+  //   const userId = parseInt(req.params.id);
+  //   const user = await getUserByIdModel(userId);
+  //   if (user) {
+  //     res.status(200).json({ user });
+  //   } else {
+  //     res.status(404).json({ message: 'User not found' });
+  //   }
+  // } catch (error) {
+  //   handleError(res, error);
+  // }
 };
 
-export const login = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { error, value } = loginSchema.validate(req.body);
+export const getUserByEmail = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  // try {
+  //   const userEmail = req.params.email;
+  //   const user = await getUserByEmailModel(userEmail);
+  //   if (user) {
+  //     res.status(200).json({ user });
+  //   } else {
+  //     res.status(404).json({ message: 'User not found' });
+  //   }
+  // } catch (error) {
+  //   handleError(res, error);
+  // }
+};
+
+export const updateUser = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  // try {
+  //   const userId = parseInt(req.params.id);
+  //   const updatedUserData: Partial<User> = req.body;
+  //   const updatedUser = await updateUserModel(userId, updatedUserData);
+  //   if (updatedUser) {
+  //     res.status(200).json({ message: 'User updated successfully', user: updatedUser });
+  //   } else {
+  //     res.status(404).json({ message: 'User not found' });
+  //   }
+  // } catch (error) {
+  //   handleError(res, error);
+  // }
+};
+
+export const deleteUser = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  // try {
+  //   const userId = parseInt(req.params.id);
+  //   const result = await deleteUserModel(userId);
+  //   res.status(200).json({ message: result });
+  // } catch (error) {
+  //   handleError(res, error);
+  // }
+};
+
+// Login user
+export const login = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    const { email, code } = req.body;
+
+    const { error } = loginSchema.validate({ email, code });
     if (error) {
-      res.status(400).json({ message: error.details[0].message });
-      return;
+      console.log("error", error);
+      throw new ApiError(400, error.details[0].message, false, [
+        error.details[0].message,
+      ]);
     }
 
-    const { email, password } = value;
     const user = await getUserByEmailModel(email);
+
     if (!user) {
-      res.status(404).json({ message: 'User not found' });
-      return;
+      throw new ApiError(404, "User not found");
     }
 
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (!isPasswordValid) {
-      res.status(401).json({ message: 'Invalid password' });
-      return;
+    const isCodeValid = verifyCode(email, code);
+
+    if (!isCodeValid) {
+      throw new ApiError(400, "Invalid verification code");
     }
 
-    const accessToken = getAccessToken(user);
-    res.status(200).json({ accessToken });
-  } catch (error) {
-    handleError(res, error);
+    const accessToken = getAccessToken(email);
+
+    res.status(200)
+    .cookie("accessToken", accessToken, options)
+    .json(
+      new ApiResponse(200, "User logged in successfully", {
+        user,
+        accessToken,
+      })
+    );
   }
-};
+);
 
+// Logout user
 export const logout = async (_req: Request, res: Response): Promise<void> => {
-  res.status(200).json({ message: 'User logged out' });
+  console.log(res.locals.user.email);
+  res.status(200)
+  // .clearCookie("accessToken", options)
+  .json(
+    new ApiResponse(201, "User Successfully LogOut", {})
+  );
 };
