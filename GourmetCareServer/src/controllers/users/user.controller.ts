@@ -1,11 +1,12 @@
 import { Request, Response } from "express";
 import {
   createUsersTable,
-  createUser as createUserModel,
-  getUserById as getUserByIdModel,
-  getUserByEmail as getUserByEmailModel,
-  updateUser as updateUserModel,
-  deleteUser as deleteUserModel,
+  createUserModel,
+  getUserByIdModel,
+  getUserByEmailModel,
+  updateUserModel,
+  deleteUserModel,
+  getAllUsersMode,
   User,
 } from "../../models/user.model";
 import { ApiError } from "../../utils/apiError";
@@ -20,7 +21,6 @@ import {
 import { storeVerificationEmailCode } from "../../utils/optValidation";
 import { storeVerificationPhoneCode } from "../../utils/optValidation";
 import { options } from "../../utils/schemaValidation";
-import cookieParser from "cookie-parser";
 
 // Verify the user's email or phone number
 export const sendVerificationCode = asyncHandler(
@@ -106,70 +106,51 @@ export const createUser = asyncHandler(
   }
 );
 
-export const getUserById = async (
-  req: Request,
-  res: Response
-): Promise<void> => {
-  // try {
-  //   const userId = parseInt(req.params.id);
-  //   const user = await getUserByIdModel(userId);
-  //   if (user) {
-  //     res.status(200).json({ user });
-  //   } else {
-  //     res.status(404).json({ message: 'User not found' });
-  //   }
-  // } catch (error) {
-  //   handleError(res, error);
-  // }
-};
+// Get user by email
+export const  currentUser = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    const user = res.locals.user;
 
-export const getUserByEmail = async (
-  req: Request,
-  res: Response
-): Promise<void> => {
-  // try {
-  //   const userEmail = req.params.email;
-  //   const user = await getUserByEmailModel(userEmail);
-  //   if (user) {
-  //     res.status(200).json({ user });
-  //   } else {
-  //     res.status(404).json({ message: 'User not found' });
-  //   }
-  // } catch (error) {
-  //   handleError(res, error);
-  // }
-};
+    if((!user)){
+      throw new ApiError(404, "User not found");
+    }
+      res.status(200).json(new ApiResponse(200, "User found", { user }));
+  }
+);
 
-export const updateUser = async (
-  req: Request,
-  res: Response
-): Promise<void> => {
-  // try {
-  //   const userId = parseInt(req.params.id);
-  //   const updatedUserData: Partial<User> = req.body;
-  //   const updatedUser = await updateUserModel(userId, updatedUserData);
-  //   if (updatedUser) {
-  //     res.status(200).json({ message: 'User updated successfully', user: updatedUser });
-  //   } else {
-  //     res.status(404).json({ message: 'User not found' });
-  //   }
-  // } catch (error) {
-  //   handleError(res, error);
-  // }
-};
+// Update user
+export const updateUser = asyncHandler( 
+  async (req: Request, res: Response): Promise<void> => {
+    const user = res.locals.user;
+    const updatedUserData: Partial<User> = req.body;
+    const updatedUser = await updateUserModel(user.id, updatedUserData);
+    if (updatedUser) {
+      res.status(200).json(
+        new ApiResponse(200, "User updated successfully", {
+          user: updatedUser,
+        })
+      );
+    } else {
+      throw new ApiError(404, "User not found");
+    }
+  }
+);
 
-export const deleteUser = async (
-  req: Request,
-  res: Response
-): Promise<void> => {
-  // try {
-  //   const userId = parseInt(req.params.id);
-  //   const result = await deleteUserModel(userId);
-  //   res.status(200).json({ message: result });
-  // } catch (error) {
-  //   handleError(res, error);
-  // }
-};
+// Delete user
+export const deleteUser = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    const userEmail = res.locals.user.email;
+    const userId = res.locals.user.id;
+    const user = await getUserByEmailModel(userEmail);
+    
+    if (!user) {
+      throw new ApiError(404, "User not found");
+    }
+
+    const deletedUser = await deleteUserModel(userId);
+    res.status(200).json(new ApiResponse(200, "User deleted successfully", {deletedUser}));
+  }
+);
 
 // Login user
 export const login = asyncHandler(
@@ -198,23 +179,80 @@ export const login = asyncHandler(
 
     const accessToken = getAccessToken(email);
 
-    res.status(200)
-    .cookie("accessToken", accessToken, options)
-    .json(
-      new ApiResponse(200, "User logged in successfully", {
-        user,
-        accessToken,
-      })
-    );
+    res
+      .status(200)
+      .cookie("accessToken", accessToken, options)
+      .json(
+        new ApiResponse(200, "User logged in successfully", {
+          user,
+          accessToken,
+        })
+      );
   }
 );
 
 // Logout user
 export const logout = async (_req: Request, res: Response): Promise<void> => {
-  console.log(res.locals.user.email);
-  res.status(200)
-  // .clearCookie("accessToken", options)
-  .json(
-    new ApiResponse(201, "User Successfully LogOut", {})
-  );
+  res
+    .status(200)
+    .clearCookie("accessToken", options)
+    .json(new ApiResponse(201, "User Successfully LogOut", {}));
 };
+
+
+
+
+
+// ADMIN
+// Get all users
+export const getAllUsers = asyncHandler(
+  async (_req: Request, res: Response): Promise<void> => {
+    const users = await getAllUsersMode();
+    res.status(200).json({ users });
+  }
+);
+
+// Get users by id
+export const getUserById = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    const userId = parseInt(req.params.id);
+    const user = await getUserByIdModel(userId);
+    if (user) {
+      res.status(200).json({ user });
+    } else {
+      res.status(404).json({ message: "User not found" });
+    }
+  }
+);
+
+
+
+// Update user by id
+// export const updateUserById = asyncHandler(
+//   async (req: Request, res: Response): Promise<void> => {
+//     const userId = parseInt(req.params.id);
+//     const updatedUserData: Partial<User> = req.body;
+//     const updatedUser = await updateUserModel(userId, updatedUserData);
+//     if (updatedUser) {
+//       res.status(200).json({ user: updatedUser });
+//     } else {
+//       res.status(404).json({ message: "User not found" });
+//     }
+
+//   }
+
+// );
+
+// Delete user by id
+// export const deleteUserById = asyncHandler(
+//   async (req: Request, res: Response): Promise<void> => {
+//     const userId = parseInt(req.params.id);
+//     const deletedUser = await deleteUserModel(userId);
+//     if (deletedUser) {
+//       res.status(200).json({ user: deletedUser });
+//     } else {
+//       res.status(404).json({ message: "User not found" });
+//     }
+//   }
+// );
+
