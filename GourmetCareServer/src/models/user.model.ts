@@ -37,7 +37,7 @@ export const createUsersTable = async (): Promise<void> => {
 };
 
 // Create a new user
-export const createUser = async (user: User): Promise<User> => {
+export const createUserModel = async (user: User): Promise<User> => {
   const { first_name, last_name, email, phoneNumber} = user;
   const createUserQuery = `
     INSERT INTO users (first_name, last_name, email, phone_number)
@@ -55,7 +55,7 @@ export const createUser = async (user: User): Promise<User> => {
 };
 
 // Get a user by email
-export const getUserByEmail = async (email: string): Promise<User | null> => {
+export const getUserByEmailModel = async (email: string): Promise<User | null> => {
   const getUserByEmailQuery = `
     SELECT * FROM users
     WHERE email = $1;
@@ -70,8 +70,68 @@ export const getUserByEmail = async (email: string): Promise<User | null> => {
   }
 }
 
+// Update a user
+export const updateUserModel = async (id: number, user: Partial<User>): Promise<User | null> => {
+  const { first_name, last_name, email, phoneNumber, dateOfBirth} = user;
+  const updateUserQuery = `
+    UPDATE users
+    SET 
+      first_name = COALESCE($1, first_name), 
+      last_name = COALESCE($2, last_name), 
+      email = COALESCE($3, email), 
+      phone_number = COALESCE($4, phone_number), 
+      date_of_birth = COALESCE($5, date_of_birth),
+      updated_at = CURRENT_TIMESTAMP
+    WHERE id = $6
+    RETURNING *;
+  `;
+
+  try {
+    const { rows }: QueryResult = await pool.query(updateUserQuery, [first_name, last_name, email, phoneNumber, dateOfBirth, id]);
+    return rows[0] || null;
+  } catch (error) {
+    console.error('Error updating user:', error);
+    throw error;
+  }
+};
+
+// Delete a user
+export const deleteUserModel = async (id: number): Promise<User | null> => {
+  const deleteUserQuery = `
+    DELETE FROM users
+    WHERE id = $1
+    RETURNING *;
+  `;
+
+  try {
+    const { rows }: QueryResult = await pool.query(deleteUserQuery, [id]);
+    return rows[0] || null;
+  } catch (error) {
+    console.error('Error deleting user:', error);
+    throw error;
+  }
+};
+
+// Get a user by id
+export const getUserByIdModel = async (id: number): Promise<User | null> => {
+  const getUserByIdQuery = `
+    SELECT * FROM users
+    WHERE id = $1;
+  `;
+
+  try {
+    const { rows }: QueryResult = await pool.query(getUserByIdQuery, [id]);
+    return rows[0] || null;
+  } catch (error) {
+    console.error('Error getting user by id:', error);
+    throw error;
+  }
+};
+
+
+// ADMIN 
 // Get all users
-export const getUsers = async (): Promise<User[]> => {
+export const getAllUsersMode = async (): Promise<User[]> => {
   const getUsersQuery = `
     SELECT * FROM users;
   `;
@@ -85,58 +145,3 @@ export const getUsers = async (): Promise<User[]> => {
   }
 };
 
-// Get a user by id
-export const getUserById = async (id: number): Promise<User | null> => {
-  const getUserByIdQuery = `
-    SELECT * FROM users
-    WHERE id = $1;
-  `;
-
-  try {
-    const { rows }: QueryResult = await pool.query(getUserByIdQuery, [id]);
-    return rows[0] || null;
-  } catch (error) {
-    console.error('Error getting user by id:', error);
-    throw error;
-  }
-}
-
-// Update a user
-export const updateUser = async (id: number, user: Partial<User>): Promise<User | null> => {
-  const { first_name, last_name, email, phoneNumber} = user;
-  const updateUserQuery = `
-    UPDATE users
-    SET 
-      first_name = COALESCE($1, first_name), 
-      last_name = COALESCE($2, last_name), 
-      email = COALESCE($3, email), 
-      phone_number = COALESCE($4, phone_number), 
-      updated_at = CURRENT_TIMESTAMP
-    WHERE id = $6
-    RETURNING *;
-  `;
-
-  try {
-    const { rows }: QueryResult = await pool.query(updateUserQuery, [first_name, last_name, email, phoneNumber, id]);
-    return rows[0] || null;
-  } catch (error) {
-    console.error('Error updating user:', error);
-    throw error;
-  }
-};
-
-// Delete a user
-export const deleteUser = async (id: number): Promise<string> => {
-  const deleteUserQuery = `
-    DELETE FROM users
-    WHERE id = $1;
-  `;
-
-  try {
-    await pool.query(deleteUserQuery, [id]);
-    return 'User deleted successfully';
-  } catch (error) {
-    console.error('Error deleting user:', error);
-    throw error;
-  }
-};
