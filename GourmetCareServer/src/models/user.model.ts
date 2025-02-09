@@ -8,9 +8,7 @@ export interface User {
   email: string;
   dateOfBirth?: Date;
   phoneNumber?: string;
-  password: string;
   role?: string;
-  refresh_token: string;
   created_at?: Date;
   updated_at?: Date;
 }
@@ -25,9 +23,7 @@ export const createUsersTable = async (): Promise<void> => {
       email VARCHAR(255) UNIQUE NOT NULL,
       date_of_birth DATE,
       phone_number VARCHAR(20),
-      password VARCHAR(255) NOT NULL,
       role VARCHAR(20) DEFAULT 'user',
-      refresh_token TEXT NOT NULL,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
@@ -35,24 +31,22 @@ export const createUsersTable = async (): Promise<void> => {
 
   try {
     await pool.query(createTableQuery);
-    console.log('Users table created successfully');
   } catch (error) {
-    console.error('Error creating users table:', error);
     throw error;
   }
 };
 
 // Create a new user
 export const createUser = async (user: User): Promise<User> => {
-  const { first_name, last_name, email, phoneNumber, password } = user;
+  const { first_name, last_name, email, phoneNumber} = user;
   const createUserQuery = `
-    INSERT INTO users (first_name, last_name, email, phone_number, password)
-    VALUES ($1, $2, $3, $4, $5)
+    INSERT INTO users (first_name, last_name, email, phone_number)
+    VALUES ($1, $2, $3, $4)
     RETURNING *;
   `;
 
   try {
-    const { rows }: QueryResult = await pool.query(createUserQuery, [first_name, last_name, email, phoneNumber, password]);
+    const { rows }: QueryResult = await pool.query(createUserQuery, [first_name, last_name, email, phoneNumber]);
     return rows[0];
   } catch (error) {
     console.error('Error creating user:', error);
@@ -109,7 +103,7 @@ export const getUserById = async (id: number): Promise<User | null> => {
 
 // Update a user
 export const updateUser = async (id: number, user: Partial<User>): Promise<User | null> => {
-  const { first_name, last_name, email, phoneNumber, password } = user;
+  const { first_name, last_name, email, phoneNumber} = user;
   const updateUserQuery = `
     UPDATE users
     SET 
@@ -117,14 +111,13 @@ export const updateUser = async (id: number, user: Partial<User>): Promise<User 
       last_name = COALESCE($2, last_name), 
       email = COALESCE($3, email), 
       phone_number = COALESCE($4, phone_number), 
-      password = COALESCE($5, password),
       updated_at = CURRENT_TIMESTAMP
     WHERE id = $6
     RETURNING *;
   `;
 
   try {
-    const { rows }: QueryResult = await pool.query(updateUserQuery, [first_name, last_name, email, phoneNumber, password, id]);
+    const { rows }: QueryResult = await pool.query(updateUserQuery, [first_name, last_name, email, phoneNumber, id]);
     return rows[0] || null;
   } catch (error) {
     console.error('Error updating user:', error);
