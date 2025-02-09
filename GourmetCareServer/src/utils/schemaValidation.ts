@@ -7,11 +7,22 @@ export const userSchema = Joi.object({
   phoneNumber: Joi.string()
     .pattern(/^[0-9]{10}$/)
     .required(),
-  password: Joi.string().min(8).required(),
+  code: Joi.string().required(),
 });
 
 export const loginSchema = Joi.object({
   email: Joi.string().email().required(),
-  password: Joi.string().required(),
+  code: Joi.string().required(),
 });
 
+export const options: {
+  httpOnly: boolean;
+  secure: boolean;
+  sameSite: 'strict';
+  path: string;
+} = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: "strict",
+  path: "/",
+};
