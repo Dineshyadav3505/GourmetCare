@@ -8,7 +8,6 @@ export const asyncHandler = (requestHandler: AsyncRequestHandler) => {
         try {
             await requestHandler(req, res, next);
         } catch (error: any) {
-            console.log('error', error);
             res.status(error.statusCode ).json(new ApiResponse(error.code , error.message, error, error.success));      
         }
     };
