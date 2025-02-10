@@ -1,5 +1,6 @@
 import { QueryResult } from 'pg';
 import pool from '../db/dataConnection';
+import { ApiError } from '../utils/apiError';
 
 export interface User {
   id?: number;
@@ -7,38 +8,52 @@ export interface User {
   last_name: string;
   email: string;
   dateOfBirth?: Date;
-  phoneNumber?: string;
+  phone_number?: string;
   role?: string;
   created_at?: Date;
   updated_at?: Date;
 }
 
+      // role VARCHAR(20) ENUM('user', 'technician', 'manager', 'admin', 'superAdmin') DEFAULT 'user',
+
 // Create users table if it doesn't exist
 export const createUsersTable = async (): Promise<void> => {
+  const createTypeQuery = `
+    DO $$ BEGIN
+      CREATE TYPE user_role AS ENUM ('user', 'technician', 'manager', 'admin', 'superAdmin');
+    EXCEPTION
+      WHEN duplicate_object THEN null;
+    END $$;
+  `;
+
   const createTableQuery = `
     CREATE TABLE IF NOT EXISTS users (
-      id SERIAL PRIMARY KEY ,
+      id SERIAL PRIMARY KEY,
       first_name VARCHAR(100) NOT NULL,
       last_name VARCHAR(100) NOT NULL,
       email VARCHAR(255) UNIQUE NOT NULL,
-      date_of_birth DATE,
+      date_of_birth DATE DEFAULT '2000-01-01'::DATE, 
       phone_number VARCHAR(20),
-      role VARCHAR(20) DEFAULT 'user',
+      role user_role DEFAULT 'user',
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
   `;
 
   try {
+    await pool.query(createTypeQuery);
     await pool.query(createTableQuery);
+    console.log('Users table created successfully');
   } catch (error) {
+    console.error('Error creating users table:', error);
     throw error;
   }
 };
 
+
 // Create a new user
 export const createUserModel = async (user: User): Promise<User> => {
-  const { first_name, last_name, email, phoneNumber} = user;
+  const { first_name, last_name, email, phone_number} = user;
   const createUserQuery = `
     INSERT INTO users (first_name, last_name, email, phone_number)
     VALUES ($1, $2, $3, $4)
@@ -46,7 +61,7 @@ export const createUserModel = async (user: User): Promise<User> => {
   `;
 
   try {
-    const { rows }: QueryResult = await pool.query(createUserQuery, [first_name, last_name, email, phoneNumber]);
+    const { rows }: QueryResult = await pool.query(createUserQuery, [first_name, last_name, email, phone_number]);
     return rows[0];
   } catch (error) {
     console.error('Error creating user:', error);
@@ -72,7 +87,7 @@ export const getUserByEmailModel = async (email: string): Promise<User | null> =
 
 // Update a user
 export const updateUserModel = async (id: number, user: Partial<User>): Promise<User | null> => {
-  const { first_name, last_name, email, phoneNumber, dateOfBirth} = user;
+  const { first_name, last_name, email, phone_number, dateOfBirth} = user;
   const updateUserQuery = `
     UPDATE users
     SET 
@@ -87,7 +102,7 @@ export const updateUserModel = async (id: number, user: Partial<User>): Promise<
   `;
 
   try {
-    const { rows }: QueryResult = await pool.query(updateUserQuery, [first_name, last_name, email, phoneNumber, dateOfBirth, id]);
+    const { rows }: QueryResult = await pool.query(updateUserQuery, [first_name, last_name, email, phone_number, dateOfBirth, id]);
     return rows[0] || null;
   } catch (error) {
     console.error('Error updating user:', error);
@@ -141,6 +156,32 @@ export const getAllUsersMode = async (): Promise<User[]> => {
     return rows;
   } catch (error) {
     console.error('Error getting users:', error);
+    throw error;
+  }
+};
+
+// Update a user by Admin
+export const updateUserByAdminModel = async (id: number, user: Partial<User>): Promise<User | null> => {
+  const { first_name, last_name, email, phone_number, dateOfBirth, role} = user;
+  const updateUserQuery = `
+    UPDATE users
+    SET 
+      first_name = COALESCE($1, first_name), 
+      last_name = COALESCE($2, last_name), 
+      email = COALESCE($3, email), 
+      phone_number = COALESCE($4, phone_number), 
+      date_of_birth = COALESCE($5, date_of_birth),
+      role = COALESCE($6, role),
+      updated_at = CURRENT_TIMESTAMP
+    WHERE id = $7
+    RETURNING *;
+  `;
+
+  try {
+    const { rows }: QueryResult = await pool.query(updateUserQuery, [first_name, last_name, email, phone_number, dateOfBirth, role, id]);
+    return rows[0] || null;
+  } catch (error) {
+    console.error('Error updating user:', error);
     throw error;
   }
 };
