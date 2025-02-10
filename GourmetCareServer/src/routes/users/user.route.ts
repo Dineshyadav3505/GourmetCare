@@ -1,5 +1,5 @@
-import {sendVerificationCode, createUser, currentUser, updateUser, deleteUser, login, logout, getUserById, getAllUsers } from '../../controllers/users/user.controller'; 
-import {verifyJWT} from '../../middleware/auth.middleware';
+import {sendVerificationCode, createUser, currentUser, updateUser, deleteUser, login, logout, getUserById, getAllUsers, updateUserById, deleteUserById, updateUserByIdSuperAdmin } from '../../controllers/users/user.controller'; 
+import {adminVerification, superAdminVerification, verifyJWT} from '../../middleware/auth.middleware';
 import { Router, RequestHandler } from 'express';
 
 const router = Router();
@@ -14,10 +14,12 @@ router.put('/user', verifyJWT, updateUser as RequestHandler);
 router.delete('/user', verifyJWT, deleteUser as RequestHandler);
 
 //Admin routes
-router.get('/users/:id', verifyJWT, getUserById as RequestHandler);
-router.get('/users', verifyJWT, getAllUsers as RequestHandler);
-// router.get('/user/:id', verifyJWT, getUserById as RequestHandler);
-// router.put('/user/:id', verifyJWT, updateUserById as RequestHandler);
-// router.delete('/user/:id', verifyJWT, deleteUserById as RequestHandler);
+router.get('/users', verifyJWT, adminVerification, getAllUsers as RequestHandler);
+router.get('/user/:id', verifyJWT, adminVerification, getUserById as RequestHandler);
+router.put('/user/:id', verifyJWT, adminVerification, updateUserById as RequestHandler);
+router.delete('/user/:id', verifyJWT, adminVerification, deleteUserById as RequestHandler);
 
-export default router; 
+//SuperAdmin routes
+router.put('/all/:id', verifyJWT, superAdminVerification, updateUserByIdSuperAdmin as RequestHandler);
+
+export default router;         
