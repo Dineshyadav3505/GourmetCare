@@ -8,6 +8,7 @@ import {
   deleteUserModel,
   getAllUsersMode,
   User,
+  updateUserByAdminModel,
 } from "../../models/user.model";
 import { ApiError } from "../../utils/apiError";
 import { ApiResponse } from "../../utils/apiResponse";
@@ -25,9 +26,9 @@ import { options } from "../../utils/schemaValidation";
 // Verify the user's email or phone number
 export const sendVerificationCode = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
-    const { email, phoneNumber } = req.body;
+    const { email, phone_number } = req.body;
 
-    if (!email && !phoneNumber) {
+    if (!email && !phone_number) {
       throw new ApiError(400, "Either email or phone number is required");
     }
 
@@ -37,10 +38,10 @@ export const sendVerificationCode = asyncHandler(
       verificationCode = generateVerificationCode();
       storeVerificationEmailCode(email, verificationCode);
     }
-    if (phoneNumber) {
+    if (phone_number) {
       console.log("phone");
       verificationCode = generateVerificationCode();
-      storeVerificationPhoneCode(phoneNumber, verificationCode);
+      storeVerificationPhoneCode(phone_number, verificationCode);
     }
 
     res.status(201).json(
@@ -57,14 +58,14 @@ export const createUser = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
     await createUsersTable();
 
-    const { first_name, last_name, email, phoneNumber, code } = req.body;
+    const { first_name, last_name, email, phone_number, code } = req.body;
 
     // Validate user input against schema
     const { error } = userSchema.validate({
       first_name,
       last_name,
       email,
-      phoneNumber,
+      phone_number,
       code,
     });
     if (error) {
@@ -94,8 +95,13 @@ export const createUser = asyncHandler(
 
     const accessToken = getAccessToken(email);
 
-    const newUser = { first_name, last_name, email, phoneNumber };
+    const newUser = { first_name, last_name, email, phone_number };
+    console.log("newUser", newUser);
     const user = await createUserModel(newUser);
+
+    if (!user) {
+      throw new ApiError(500, "Error creating user");
+    }
 
     res
       .status(201)
@@ -207,8 +213,14 @@ export const logout = async (_req: Request, res: Response): Promise<void> => {
 // Get all users
 export const getAllUsers = asyncHandler(
   async (_req: Request, res: Response): Promise<void> => {
+    const currentUserId = res.locals.user.id;
     const users = await getAllUsersMode();
-    res.status(200).json({ users });
+    if (!users) {
+      throw new ApiError(404, "Users not found");
+    }
+    // Filter out the current user from the users array
+    const filteredUsers = users.filter(user => user.id !== currentUserId || user.role === "superAdmin");
+    res.status(200).json(new ApiResponse(200, "Users found", { users: filteredUsers }));
   }
 );
 
@@ -217,42 +229,98 @@ export const getUserById = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
     const userId = parseInt(req.params.id);
     const user = await getUserByIdModel(userId);
-    if (user) {
-      res.status(200).json({ user });
-    } else {
-      res.status(404).json({ message: "User not found" });
+    if (!user) {
+      throw new ApiError(404, "Users not found");
+    } 
+    res.status(200).json(new ApiResponse(200, "Users found", { user }));
+    
+  }
+);
+
+// Update user by id
+export const updateUserById = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    const userId = parseInt(req.params.id);
+    const updatedUserData: Partial<User> = req.body;
+
+    if(!userId){
+      throw new ApiError(400, "User id is required");
     }
+
+    if(!updatedUserData){
+      throw new ApiError(400, "User data is required");
+    }
+
+    if(userId === res.locals.user.id){
+      throw new ApiError(400, "You cannot update your own role");
+    }
+
+    if(updatedUserData.role === "superAdmin"){
+      throw new ApiError(400, "You are not authorized to make this change");
+    }
+
+    const user = await getUserByIdModel(userId);
+    if (!user) {
+      throw new ApiError(404, "User not found");
+    }
+    const updatedUser = await updateUserByAdminModel(userId, updatedUserData);
+    if (!updatedUser) {
+      throw new ApiError(404, "User not found");
+    } 
+    res.status(200).json(
+      new ApiResponse(200, "User updated successfully", {
+        updatedUser
+      })
+    );
+  }
+);
+
+// Delete user by id
+export const deleteUserById = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    const userId = parseInt(req.params.id);
+    const deletedUser = await deleteUserModel(userId);
+    if (deletedUser) {
+      res.status(200).json( new ApiResponse(200, "User deleted successfully", {deletedUser}));
+    }
+    throw new ApiError(404, "User not found");
   }
 );
 
 
+// Super Admin
+export const updateUserByIdSuperAdmin = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    const userId = parseInt(req.params.id);
+    const updatedUserData: Partial<User> = req.body;
 
-// Update user by id
-// export const updateUserById = asyncHandler(
-//   async (req: Request, res: Response): Promise<void> => {
-//     const userId = parseInt(req.params.id);
-//     const updatedUserData: Partial<User> = req.body;
-//     const updatedUser = await updateUserModel(userId, updatedUserData);
-//     if (updatedUser) {
-//       res.status(200).json({ user: updatedUser });
-//     } else {
-//       res.status(404).json({ message: "User not found" });
-//     }
+    if(!userId){
+      throw new ApiError(400, "User id is required");
+    }
 
-//   }
+    if(!updatedUserData){
+      throw new ApiError(400, "User data is required");
+    }
 
-// );
+    if(userId === res.locals.user.id){
+      throw new ApiError(400, "You cannot update your own role");
+    }
 
-// Delete user by id
-// export const deleteUserById = asyncHandler(
-//   async (req: Request, res: Response): Promise<void> => {
-//     const userId = parseInt(req.params.id);
-//     const deletedUser = await deleteUserModel(userId);
-//     if (deletedUser) {
-//       res.status(200).json({ user: deletedUser });
-//     } else {
-//       res.status(404).json({ message: "User not found" });
-//     }
-//   }
-// );
+    const user = await getUserByIdModel(userId);
+    if (!user) {
+      throw new ApiError(404, "User not found");
+    }
+
+    const updatedUser = await updateUserByAdminModel(userId, updatedUserData);
+    if (!updatedUser) {
+      throw new ApiError(404, "User not found");
+    } 
+    res.status(200).json(
+      new ApiResponse(200, "User updated successfully", {
+        updatedUser
+      })
+    );
+  }
+);
+
 
