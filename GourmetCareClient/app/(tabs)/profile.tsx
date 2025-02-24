@@ -2,11 +2,12 @@ import { View, Text, Pressable } from 'react-native';
 import { Link } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-export default function Home() {
+export default function Profile() {
   return (
     <SafeAreaView>
-      <View className="h-full content-stretch bg-orange-400">
-        <Text>Home</Text>
+
+      <View className='h-full content-stretch'>
+        <Text>xyz</Text>
       </View>
     </SafeAreaView>
   );
