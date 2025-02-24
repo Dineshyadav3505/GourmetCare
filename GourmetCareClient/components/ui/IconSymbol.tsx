@@ -5,19 +5,20 @@ import { OpaqueColorValue, StyleProp, ViewStyle } from 'react-native';
 
 const MAPPING = {
   'house.fill': 'home',
-  'paperplane.fill': 'send',
+  'mail.fill': 'mail',
   'person.fill': 'person',
-  'profile.fill': 'person',
-  'chevron.left': 'chevron-left',
-  'chevron.left.forwardslash.chevron.right': 'code',
-  'chevron.right': 'chevron-right',
-  "laptop.right":'laptop',
+  'info.circle': 'info',
+  'calendar,': 'calendar',
+  'building1': 'building',
+  'add': 'add',
+
 } as Partial<
   Record<
     import('expo-symbols').SymbolViewProps['name'],
     React.ComponentProps<typeof MaterialIcons>['name']
   >
 >;
+
 
 export type IconSymbolName = keyof typeof MAPPING;
 

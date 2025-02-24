@@ -12,7 +12,7 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 export default function TabLayout() {
   const colorScheme = useColorScheme();
 
-  return ( 
+  return (
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
@@ -21,10 +21,11 @@ export default function TabLayout() {
         tabBarBackground: TabBarBackground,
         tabBarStyle: Platform.select({
           ios: {
-            // Use a transparent background on iOS to show the blur effect
             position: 'absolute',
           },
-          default: {},
+          default: {
+            position: 'absolute',
+          },
         }),
       }}>
       <Tabs.Screen
@@ -37,22 +38,22 @@ export default function TabLayout() {
       <Tabs.Screen
         name="history"
         options={{
-          title: 'H',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+          title: 'Booking',
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name='calendar' color={color} />,
         }}
       />
       <Tabs.Screen
-        name="complent"
+        name="complaint"
         options={{
-          title: 'Complent',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="person.fill" color={color} />,
+          title: 'Complaint',
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="mail.fill" color={"#23221"} />,
         }}
       />
       <Tabs.Screen
         name="xyz"
         options={{
-          title: 'Xyz',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="person.fill" color={color} />,
+          title: 'My Site',
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="building" color={color} />,
         }}
       />
       <Tabs.Screen
